@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kyynotch — Dynamic Island</title>
+  <link rel="stylesheet" href="styles/island.css">
+  <link rel="stylesheet" href="styles/tabs.css">
+  <link rel="stylesheet" href="styles/lyrics.css">
+</head>
+<body class="theme-apple">
+  <div id="island" class="island collapsed">
+    <!-- Collapsed State (The Pill) -->
+    <div id="collapsed-pill" class="collapsed-pill">
+      <!-- Left cluster -->
+      <div class="cluster left-cluster">
+        <div id="pill-pomo" class="pill-pomo hidden"></div>
+        <div id="pill-battery" class="pill-battery hidden">
+          <span id="pill-battery-icon" class="icon">⚡</span>
+          <span id="pill-battery-pct">100%</span>
+        </div>
+        <div id="pill-music" class="pill-music hidden" title="Klik untuk Play/Pause">
+          <span id="pill-music-icon" class="icon">🎵</span>
+          <span id="pill-music-title" class="pill-music-title">Track</span>
+          <span class="pill-music-sep">·</span>
+          <span id="pill-music-artist" class="pill-music-artist">Artist</span>
+        </div>
+      </div>
+
+      <!-- Center cluster -->
+      <div class="cluster center-cluster">
+        <div id="pill-clock" class="pill-clock">00:00</div>
+      </div>
+
+      <!-- Right cluster -->
+      <div class="cluster right-cluster">
+        <div id="pill-date" class="pill-date">Mon 1</div>
+      </div>
+    </div>
+
+    <!-- Expanded State (The Dashboard) -->
+    <div id="expanded-container" class="expanded-container hidden">
+      <!-- Header -->
+      <div class="expanded-header">
+        <div class="header-left">
+          <div id="expanded-clock" class="expanded-clock">00:00:00</div>
+          <div id="expanded-date" class="expanded-date">Monday, 1 January</div>
+        </div>
+        <div class="header-right">
+          <button id="btn-close-app" class="icon-btn" title="Keluar / Tutup">✕</button>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="system">System</button>
+        <button class="tab-btn" data-tab="music">Music</button>
+        <button class="tab-btn" data-tab="ai">AI</button>
+        <button class="tab-btn" data-tab="weather">Weather</button>
+        <button class="tab-btn" data-tab="notes">Notes</button>
+        <button class="tab-btn" data-tab="pomodoro">Timer</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
+      </div>
+
+      <!-- Panels Content -->
+      <div class="panels-viewport">
+        <!-- SYSTEM PANEL -->
+        <div id="panel-system" class="tab-panel active">
+          <div class="system-grid">
+            <div class="sys-card">
+              <div class="sys-label">CPU Load</div>
+              <div class="sys-val"><span id="sys-cpu">0</span>%</div>
+              <div class="progress-bar"><div id="sys-cpu-bar" class="progress-fill" style="width: 0%"></div></div>
+            </div>
+            <div class="sys-card">
+              <div class="sys-label">RAM Usage</div>
+              <div class="sys-val"><span id="sys-ram">0</span>%</div>
+              <div class="sys-sub"><span id="sys-ram-used">0</span> / <span id="sys-ram-total">0</span> GB</div>
+              <div class="progress-bar"><div id="sys-ram-bar" class="progress-fill" style="width: 0%"></div></div>
+            </div>
+            <div class="sys-card">
+              <div class="sys-label">Storage</div>
+              <div class="sys-val"><span id="sys-disk">0</span>%</div>
+              <div class="sys-sub"><span id="sys-disk-used">0</span> / <span id="sys-disk-total">0</span> GB</div>
+              <div class="progress-bar"><div id="sys-disk-bar" class="progress-fill" style="width: 0%"></div></div>
+            </div>
+            <div class="sys-card">
+              <div class="sys-label">Battery / Uptime</div>
+              <div class="sys-val"><span id="sys-batt">100</span>% <small id="sys-charging"></small></div>
+              <div class="sys-sub">Uptime: <span id="sys-uptime">0m</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MUSIC & LYRICS PANEL -->
+        <div id="panel-music" class="tab-panel">
+          <div id="music-empty" class="empty-state hidden">
+            <div class="empty-icon">🎵</div>
+            <div class="empty-title">Tidak ada musik yang aktif</div>
+            <div class="empty-sub">Buka YouTube di Chrome/Edge atau putar lagu di Spotify untuk mengontrol dari sini.</div>
+          </div>
+
+          <div id="music-player-view" class="music-player-view">
+            <!-- Top Player Details -->
+            <div class="media-card">
+              <div id="media-art" class="media-art">🎵</div>
+              <div class="media-info">
+                <div id="media-status-pill" class="status-pill">▶ SEDANG DIPUTAR</div>
+                <div id="media-title" class="media-title">Judul Lagu</div>
+                <div id="media-artist" class="media-artist">Nama Artis</div>
+                <!-- Controls -->
+                <div class="media-controls">
+                  <button id="btn-prev" class="ctrl-btn" title="Sebelumnya">⏮</button>
+                  <button id="btn-play-pause" class="ctrl-btn play-btn" title="Play/Pause">⏸</button>
+                  <button id="btn-next" class="ctrl-btn" title="Selanjutnya">⏭</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Real-time Synced Lyrics Container -->
+            <div class="lyrics-container">
+              <div class="lyrics-header">
+                <span class="lyrics-badge">LIRIK REALTIME</span>
+                <span id="lyrics-song-title" class="lyrics-sub"></span>
+              </div>
+              <div class="lyrics-lines">
+                <div id="lyric-prev" class="lyric-line lyric-prev"></div>
+                <div id="lyric-curr" class="lyric-line lyric-curr">Memuat lirik realtime...</div>
+                <div id="lyric-next" class="lyric-line lyric-next"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNIVERSAL AI PANEL -->
+        <div id="panel-ai" class="tab-panel">
+          <div class="ai-header">
+            <div id="ai-active-provider" class="provider-badge">Gemini AI</div>
+            <button id="btn-ai-clear" class="sub-btn">Bersihkan Chat</button>
+          </div>
+          <div id="ai-messages" class="ai-messages">
+            <div class="msg assistant">
+              Halo! Saya asisten AI Anda. Anda dapat mengajukan pertanyaan atau melampirkan gambar secara instan.
+            </div>
+          </div>
+          <div id="ai-attachment-preview" class="ai-attachment-preview hidden">
+            <span id="ai-attachment-name">gambar.png</span>
+            <button id="btn-remove-attachment" class="close-mini">✕</button>
+          </div>
+          <div class="ai-input-row">
+            <input type="file" id="ai-file-input" accept="image/*" class="hidden">
+            <button id="btn-ai-attach" class="icon-btn" title="Pilih Gambar">🖼️</button>
+            <input type="text" id="ai-prompt-input" class="ai-input" placeholder="Tanyakan apa saja kepada AI...">
+            <button id="btn-ai-send" class="send-btn">Kirim</button>
+          </div>
+        </div>
+
+        <!-- WEATHER PANEL -->
+        <div id="panel-weather" class="tab-panel">
+          <div class="weather-box">
+            <div class="weather-current">
+              <div id="weather-temp" class="weather-temp">--°C</div>
+              <div class="weather-details">
+                <div id="weather-loc" class="weather-loc">Lokasi Saat Ini</div>
+                <div id="weather-desc" class="weather-desc">Memuat cuaca...</div>
+                <div class="weather-sub">
+                  Kelembapan: <span id="weather-hum">--</span>% · Angin: <span id="weather-wind">--</span> km/h
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTES PANEL -->
+        <div id="panel-notes" class="tab-panel">
+          <div class="notes-header">
+            <span class="panel-heading">Catatan Cepat</span>
+            <button id="btn-note-new" class="pill-btn">+ Buat Catatan</button>
+          </div>
+          <div id="notes-list" class="notes-list">
+            <!-- Notes injected here -->
+          </div>
+        </div>
+
+        <!-- POMODORO TIMER PANEL -->
+        <div id="panel-pomodoro" class="tab-panel">
+          <div class="pomo-container">
+            <div id="pomo-mode" class="pomo-mode">WAKTU FOKUS</div>
+            <div id="pomo-time" class="pomo-display">25:00</div>
+            <div class="pomo-controls">
+              <button id="btn-pomo-toggle" class="pomo-btn main">Mulai</button>
+              <button id="btn-pomo-reset" class="pomo-btn">Reset</button>
+            </div>
+            <div class="pomo-presets">
+              <button class="preset-btn active" data-work="25" data-break="5">25 / 5 min</button>
+              <button class="preset-btn" data-work="50" data-break="10">50 / 10 min</button>
+              <button class="preset-btn" data-work="15" data-break="3">15 / 3 min</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS PANEL -->
+        <div id="panel-settings" class="tab-panel">
+          <div class="settings-scroll">
+            <div class="settings-group">
+              <div class="group-title">Tema & Tampilan</div>
+              <div class="setting-row">
+                <label>Pilihan Tema</label>
+                <select id="set-theme" class="select-box">
+                  <option value="apple">Apple Dark (Frosted)</option>
+                  <option value="true-black">True Black (OLED)</option>
+                  <option value="nord">Nordic Frost</option>
+                  <option value="dracula">Dracula Purple</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="group-title">Konfigurasi Universal AI</div>
+              <div class="setting-row">
+                <label>Penyedia AI</label>
+                <select id="set-ai-provider" class="select-box">
+                  <option value="gemini">Google Gemini (API Key)</option>
+                  <option value="ollama">Ollama (Lokal & Gratis)</option>
+                  <option value="openai">OpenAI / Groq / OpenRouter</option>
+                </select>
+              </div>
+
+              <!-- Gemini Fields -->
+              <div id="field-gemini" class="provider-fields">
+                <div class="setting-row">
+                  <label>Gemini API Key</label>
+                  <input type="password" id="set-gemini-key" class="text-input" placeholder="AIzaSy...">
+                </div>
+                <div class="setting-row">
+                  <label>Model</label>
+                  <input type="text" id="set-gemini-model" class="text-input" value="gemini-1.5-flash">
+                </div>
+              </div>
+
+              <!-- Ollama Fields -->
+              <div id="field-ollama" class="provider-fields hidden">
+                <div class="setting-row">
+                  <label>Ollama URL</label>
+                  <input type="text" id="set-ollama-url" class="text-input" value="http://localhost:11434">
+                </div>
+                <div class="setting-row">
+                  <label>Model (cth: llama3, mistral)</label>
+                  <input type="text" id="set-ollama-model" class="text-input" value="llama3">
+                </div>
+              </div>
+
+              <!-- OpenAI Fields -->
+              <div id="field-openai" class="provider-fields hidden">
+                <div class="setting-row">
+                  <label>Base URL</label>
+                  <input type="text" id="set-openai-url" class="text-input" value="https://api.openai.com/v1">
+                </div>
+                <div class="setting-row">
+                  <label>API Key</label>
+                  <input type="password" id="set-openai-key" class="text-input" placeholder="sk-...">
+                </div>
+                <div class="setting-row">
+                  <label>Model</label>
+                  <input type="text" id="set-openai-model" class="text-input" value="gpt-4o-mini">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="group-title">Lokasi Cuaca</div>
+              <div class="setting-row">
+                <label>Kota / Koordinat</label>
+                <input type="text" id="set-weather-loc" class="text-input" placeholder="Kosongkan untuk otomatis (IP)">
+              </div>
+            </div>
+
+            <button id="btn-save-settings" class="save-settings-btn">Simpan Pengaturan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/lyrics.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>

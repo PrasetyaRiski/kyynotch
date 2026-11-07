@@ -1,0 +1,75 @@
+/* ——— Realtime Synced Lyrics Container ——— */
+.lyrics-container {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 110px;
+}
+
+.lyrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 4px;
+}
+
+.lyrics-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.lyrics-sub {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.lyrics-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.lyric-line {
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lyric-prev {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.lyric-curr {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 2px 0;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.55);
+  transform: scale(1.02);
+}
+
+.lyric-next {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}

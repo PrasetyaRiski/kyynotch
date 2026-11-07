@@ -1,0 +1,74 @@
+const { BrowserWindow, screen } = require('electron');
+const path = require('path');
+const store = require('./store');
+
+let mainWindow = null;
+
+function createMainWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, y: screenY } = primaryDisplay.bounds;
+
+  const initialWidth = store.get('collapsedWidth') || 260;
+  const initialHeight = store.get('collapsedHeight') || 34;
+  const x = Math.round((screenWidth - initialWidth) / 2);
+  const y = screenY;
+
+  mainWindow = new BrowserWindow({
+    width: initialWidth,
+    height: initialHeight,
+    x: x,
+    y: y,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hasShadow: false,
+    resizable: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  return mainWindow;
+}
+
+function resizeWindow(width, height) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, y: screenY } = primaryDisplay.bounds;
+
+  const targetW = Math.round(width);
+  const targetH = Math.round(height);
+  const targetX = Math.round((screenWidth - targetW) / 2);
+  const targetY = screenY;
+
+  mainWindow.setBounds({
+    x: targetX,
+    y: targetY,
+    width: targetW,
+    height: targetH,
+  });
+}
+
+function getMainWindow() {
+  return mainWindow;
+}
+
+module.exports = {
+  createMainWindow,
+  resizeWindow,
+  getMainWindow,
+};
