@@ -5,10 +5,10 @@
   "main": "src/main/index.js",
   "scripts": {
     "start": "node node_modules/electron/cli.js .",
-    "build": "electron-builder",
-    "build:linux": "electron-builder --linux",
-    "build:win": "electron-builder --win",
-    "build:all": "electron-builder -wl"
+    "build": "electron-builder -c.publish=never",
+    "build:linux": "electron-builder --linux -c.publish=never",
+    "build:win": "electron-builder --win -c.publish=never",
+    "build:all": "electron-builder -wl -c.publish=never"
   },
   "repository": {
     "type": "git",

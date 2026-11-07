@@ -57,7 +57,6 @@ jobs:
             dist/*.exe
             dist/*.AppImage
             dist/*.deb
-            dist/*.rpm
             dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
