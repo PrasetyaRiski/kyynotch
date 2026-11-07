@@ -62,24 +62,58 @@ Tidak lagi bergantung pada token internal yang rumit. Kyynotch mendukung API sta
 
 ---
 
-## 🚀 Cara Menjalankan (Development)
+## 📥 Cara Pemasangan (Untuk Pengguna Umum / Siap Pakai)
+
+Pengguna biasa **tidak perlu menginstal Node.js atau menggunakan terminal**. Anda cukup mengunduh berkas installer yang sudah dikompilasi dari halaman rilis resmi:
+
+👉 **[Unduh Versi Terbaru di GitHub Releases](https://github.com/PrasetyaRiski/kyynotch/releases/latest)**
+
+- 🪟 **Pengguna Windows (10 / 11)**:
+  1. Unduh berkas **`Kyynotch.Setup.1.0.0.exe`**.
+  2. Klik dua kali untuk memasang aplikasi. Ikon desktop dan menu start akan otomatis dibuat.
+- 🐧 **Pengguna Linux (Universal / Semua Distro - AppImage)**:
+  1. Unduh berkas **`Kyynotch-1.0.0.AppImage`**.
+  2. Berikan izin eksekusi melalui klik-kanan > *Properties* > *Allow executing file as program*, atau via terminal:
+     ```bash
+     chmod +x Kyynotch-1.0.0.AppImage
+     ./Kyynotch-1.0.0.AppImage
+     ```
+- 🐧 **Pengguna Debian / Ubuntu / Linux Mint (.deb)**:
+  1. Unduh berkas **`kyynotch_1.0.0_amd64.deb`**.
+  2. Pasang dengan klik dua kali atau jalankan:
+     ```bash
+     sudo dpkg -i kyynotch_1.0.0_amd64.deb
+     ```
+
+---
+
+## 🛠️ Menjalankan dari Kode Sumber (Untuk Pengembang / Developer)
+
+Bagi pengembang yang ingin memodifikasi atau berkontribusi pada kode sumber:
 
 ### Prasyarat
 - **Node.js** (v18 atau lebih baru).
 - **npm** (bawaan Node.js).
+- **Git**.
 
 ### Langkah-langkah
-1. Masuk ke direktori proyek:
+1. Kloning repositori ini ke komputer Anda:
    ```bash
-   cd "/run/media/kiki/Data Gua/kyynotch"
+   git clone https://github.com/PrasetyaRiski/kyynotch.git
+   cd kyynotch
    ```
 
-2. Jalankan aplikasi:
+2. Pasang dependensi:
+   ```bash
+   npm install
+   ```
+
+3. Jalankan aplikasi dalam mode pengembangan:
    ```bash
    npm start
    ```
 
-3. **Interaksi**:
+4. **Navigasi & Interaksi**:
    - Arahkan kursor mouse ke bagian atas tengah layar untuk membuka (*expand*) notch.
    - Jauhkan kursor untuk menutup kembali (*collapse*) ke bentuk pil.
    - Tekan **`Ctrl + Shift + N`** (atau `Cmd + Shift + N` di macOS) untuk toggle buka/tutup via keyboard.
