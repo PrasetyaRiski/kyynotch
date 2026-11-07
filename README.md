@@ -1,5 +1,9 @@
 # 🏝️ Kyynotch — Dynamic Island
 
+[![Release Kyynotch](https://github.com/PrasetyaRiski/kyynotch/actions/workflows/release.yml/badge.svg)](https://github.com/PrasetyaRiski/kyynotch/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue.svg)](https://github.com/PrasetyaRiski/kyynotch)
+
 **Kyynotch** adalah aplikasi desktop **Dynamic Island** (notch bergaya MacBook / iOS) yang modern, elegan, dan lintas platform (**Windows 10/11 & Seluruh Distro Linux**). 
 
 Aplikasi ini melayang transparan di bagian atas layar dan otomatis membesar (*expand*) saat disentuh kursor kursor atau melalui pintasan keyboard, memberikan akses instan ke pemutar musik, lirik sinkron waktu-nyata, asisten AI universal, monitor hardware, cuaca, catatan cepat, dan pengatur waktu fokus.
@@ -141,6 +145,19 @@ kyynotch/
 
 ---
 
+## 🚀 Rilis Otomatis (GitHub Actions CI/CD)
+
+Proyek ini telah dilengkapi dengan workflow **GitHub Actions** (`.github/workflows/release.yml`). Untuk menerbitkan versi rilis publik baru dengan installer otomatis:
+
+1. Buat tag rilis baru:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+2. GitHub Actions akan otomatis membuat runner Ubuntu dan Windows, mengompilasi installer (`.exe`, `.AppImage`, `.deb`, `.rpm`, `.tar.gz`), dan mengunggahnya langsung ke halaman **Releases** repositori Anda. Siapa pun dapat mengunduh dan memasangnya langsung!
+
+---
+
 ## 📄 Lisensi
 Didistribusikan di bawah lisensi MIT. Bebas dimodifikasi dan dikembangkan lebih lanjut.
-Dibuat dengan ❤️ oleh **Kiki**.
+Dibuat dengan ❤️ oleh **Prasetya Riski**.

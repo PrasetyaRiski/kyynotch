@@ -41,6 +41,17 @@ function createMainWindow() {
     mainWindow.show();
   });
 
+  // Re-center on display / resolution changes
+  const recenter = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const currentBounds = mainWindow.getBounds();
+    resizeWindow(currentBounds.width, currentBounds.height);
+  };
+
+  screen.on('display-metrics-changed', recenter);
+  screen.on('display-added', recenter);
+  screen.on('display-removed', recenter);
+
   return mainWindow;
 }
 

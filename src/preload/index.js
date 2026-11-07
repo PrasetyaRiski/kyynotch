@@ -37,4 +37,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Weather
   fetchWeather: (params) => ipcRenderer.invoke('weather-fetch', params),
+
+  // Autostart
+  getAutostart: () => ipcRenderer.invoke('app-get-autostart'),
+  setAutostart: (enable) => ipcRenderer.invoke('app-set-autostart', enable),
 });

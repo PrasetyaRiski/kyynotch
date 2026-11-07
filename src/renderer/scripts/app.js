@@ -664,6 +664,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setOpenaiKey = document.getElementById('set-openai-key');
   const setOpenaiModel = document.getElementById('set-openai-model');
   const setWeatherLoc = document.getElementById('set-weather-loc');
+  const setAutostart = document.getElementById('set-autostart');
   const btnSaveSettings = document.getElementById('btn-save-settings');
 
   // Populate form from config
@@ -677,6 +678,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   setOpenaiKey.value = config.ai?.openaiApiKey || '';
   setOpenaiModel.value = config.ai?.openaiModel || 'gpt-4o-mini';
   setWeatherLoc.value = config.weather?.location || '';
+
+  try {
+    const isAuto = await window.api.getAutostart();
+    if (setAutostart) setAutostart.checked = !!isAuto;
+  } catch (_) {}
 
   function toggleAiFields() {
     const val = setAiProvider.value;
@@ -710,6 +716,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     await window.api.saveAllStore(config);
+    if (setAutostart) {
+      try { await window.api.setAutostart(setAutostart.checked); } catch (_) {}
+    }
     updateAiBadge();
     pollWeather();
 

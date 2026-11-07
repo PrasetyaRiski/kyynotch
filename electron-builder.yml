@@ -1,6 +1,6 @@
-appId: com.kiki.kyynotch
+appId: com.prasetyariski.kyynotch
 productName: Kyynotch
-copyright: Copyright © 2026 Kiki
+copyright: Copyright © 2026 Prasetya Riski
 directories:
   output: dist
 files:

@@ -5,8 +5,19 @@
   "main": "src/main/index.js",
   "scripts": {
     "start": "node node_modules/electron/cli.js .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder -wl"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PrasetyaRiski/kyynotch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PrasetyaRiski/kyynotch/issues"
+  },
+  "homepage": "https://github.com/PrasetyaRiski/kyynotch#readme",
   "keywords": [
     "dynamic-island",
     "notch",
@@ -19,7 +30,7 @@
     "windows",
     "linux"
   ],
-  "author": "Kiki",
+  "author": "Prasetya Riski <pr0165341@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "electron": "^33.2.0",

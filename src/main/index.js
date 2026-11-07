@@ -43,10 +43,51 @@ app.on('window-all-closed', () => {
 
 function setupTray() {
   try {
-    // Generate or use default tray icon
-    tray = new Tray(path.join(__dirname, '../../package.json')); // fallback
+    const iconPath = path.join(__dirname, '../renderer/assets/icon.png');
+    tray = new Tray(iconPath);
+    tray.setToolTip('Kyynotch — Dynamic Island');
+
+    const updateContextMenu = () => {
+      const openAtLogin = app.getLoginItemSettings().openAtLogin;
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: 'Buka / Sembunyikan Kyynotch',
+          click: () => {
+            const win = getMainWindow();
+            if (win) {
+              if (win.isVisible()) win.hide();
+              else win.show();
+            }
+          },
+        },
+        {
+          label: 'Mulai Otomatis saat Login (Auto-start)',
+          type: 'checkbox',
+          checked: openAtLogin,
+          click: (item) => {
+            app.setLoginItemSettings({ openAtLogin: item.checked });
+            updateContextMenu();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Keluar',
+          click: () => app.quit(),
+        },
+      ]);
+      tray.setContextMenu(contextMenu);
+    };
+
+    updateContextMenu();
+    tray.on('click', () => {
+      const win = getMainWindow();
+      if (win) {
+        if (win.isVisible()) win.focus();
+        else win.show();
+      }
+    });
   } catch (_) {
-    // Tray is optional
+    // Tray optional
   }
 }
 
@@ -79,6 +120,16 @@ function setupIpc() {
 
   ipcMain.on('window-close', () => {
     app.quit();
+  });
+
+  // Autostart on boot
+  ipcMain.handle('app-get-autostart', () => {
+    return app.getLoginItemSettings().openAtLogin;
+  });
+
+  ipcMain.handle('app-set-autostart', (_event, enable) => {
+    app.setLoginItemSettings({ openAtLogin: enable });
+    return app.getLoginItemSettings().openAtLogin;
   });
 
   // Store & Settings
