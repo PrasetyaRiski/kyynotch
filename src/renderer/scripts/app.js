@@ -19,17 +19,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const expandedClock = document.getElementById('expanded-clock');
   const expandedDate = document.getElementById('expanded-date');
   const btnCloseApp = document.getElementById('btn-close-app');
+  const btnCollapse = document.getElementById('btn-collapse');
+  const btnQuitApp = document.getElementById('btn-quit-app');
 
   // Tabs
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabPanels = document.querySelectorAll('.tab-panel');
 
-  // State
-  let config = await window.api.getAllStore();
+  // Shared State (Declared up-front to prevent Temporal Dead Zone bugs)
+  let config = (await window.api.getAllStore()) || {};
   let isExpanded = false;
   let hoverTimeout = null;
   let collapseTimeout = null;
   let activeTab = config.activeTab || 'system';
+
+  let latestMedia = null;
+  let activeLyricIdx = -1;
+  let lyricSyncTimer = null;
+  let lastPositionSec = 0;
+  let lastPositionTimestamp = Date.now();
 
   // Apply Theme
   document.body.className = `theme-${config.theme || 'apple'}`;
@@ -47,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function expand() {
     if (isExpanded) return;
+    clearTimeout(hoverTimeout);
     clearTimeout(collapseTimeout);
     isExpanded = true;
 
@@ -65,7 +74,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function collapse() {
     if (!isExpanded) return;
     clearTimeout(hoverTimeout);
+    clearTimeout(collapseTimeout);
     isExpanded = false;
+
+    // Unfocus any active input so keyboard doesn't keep focus on hidden elements
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
 
     const w = measureCollapsedWidth();
     const h = config.collapsedHeight || 34;
@@ -82,6 +97,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     else expand();
   }
 
+  function isAnyInputFocused() {
+    const activeEl = document.activeElement;
+    return !!(
+      activeEl &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable)
+    );
+  }
+
   // Hover detection with debouncing
   island.addEventListener('mouseenter', () => {
     clearTimeout(collapseTimeout);
@@ -93,12 +119,68 @@ document.addEventListener('DOMContentLoaded', async () => {
   island.addEventListener('mouseleave', () => {
     clearTimeout(hoverTimeout);
     if (isExpanded) {
-      collapseTimeout = setTimeout(collapse, 320);
+      // Don't auto-collapse if user is actively typing in an input
+      if (!isAnyInputFocused()) {
+        collapseTimeout = setTimeout(collapse, 350);
+      }
+    }
+  });
+
+  // Catch cursor leaving document/window boundaries
+  document.addEventListener('mouseleave', (e) => {
+    clearTimeout(hoverTimeout);
+    if (isExpanded && !e.relatedTarget) {
+      if (!isAnyInputFocused()) {
+        collapseTimeout = setTimeout(collapse, 350);
+      }
+    }
+  });
+
+  // Clicking outside into another window or desktop collapses the notch
+  window.addEventListener('blur', () => {
+    clearTimeout(hoverTimeout);
+    if (isExpanded) {
+      collapse();
+    }
+  });
+
+  // Pressing Escape collapses the notch
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isExpanded) {
+      collapse();
+    }
+  });
+
+  // Clicking on collapsed pill directly expands
+  collapsedPill.addEventListener('click', (e) => {
+    if (!e.target.closest('#pill-music')) {
+      expand();
     }
   });
 
   window.api.onToggleNotch(() => toggle());
-  btnCloseApp.addEventListener('click', () => window.api.closeWindow());
+
+  // Close/Collapse buttons
+  if (btnCloseApp) {
+    btnCloseApp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      collapse();
+    });
+  }
+
+  if (btnCollapse) {
+    btnCollapse.addEventListener('click', (e) => {
+      e.stopPropagation();
+      collapse();
+    });
+  }
+
+  if (btnQuitApp) {
+    btnQuitApp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.api.closeWindow();
+    });
+  }
 
   // Click on collapsed music pill toggles Play/Pause directly
   pillMusic.addEventListener('click', async (e) => {
@@ -158,12 +240,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================
   // 3. MEDIA PLAYER & REALTIME SYNCED LYRICS
   // ==========================================
-  let latestMedia = null;
-  let activeLyricIdx = -1;
-  let lyricSyncTimer = null;
-  let lastPositionSec = 0;
-  let lastPositionTimestamp = Date.now();
-
   const musicEmpty = document.getElementById('music-empty');
   const musicPlayerView = document.getElementById('music-player-view');
   const mediaArt = document.getElementById('media-art');
@@ -201,6 +277,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         musicEmpty.classList.remove('hidden');
         musicPlayerView.classList.add('hidden');
         stopLyricSync();
+        if (!isExpanded && prevMedia && (prevMedia.playing || prevMedia.paused)) {
+          window.api.resizeWindow(measureCollapsedWidth(), config.collapsedHeight || 34);
+        }
         return;
       }
 
@@ -208,6 +287,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       pillMusic.classList.remove('hidden');
       pillMusicTitle.textContent = (media.title || '').slice(0, 18);
       pillMusicArtist.textContent = (media.artist || '').slice(0, 16);
+
+      if (!isExpanded && (!prevMedia || !prevMedia.title)) {
+        window.api.resizeWindow(measureCollapsedWidth(), config.collapsedHeight || 34);
+      }
 
       // Update Expanded View
       musicEmpty.classList.add('hidden');
@@ -504,7 +587,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================
   const notesList = document.getElementById('notes-list');
   const btnNoteNew = document.getElementById('btn-note-new');
-  let notes = await window.api.getNotes();
+  let rawNotes = await window.api.getNotes();
+  let notes = Array.isArray(rawNotes) ? rawNotes : [];
 
   function renderNotes() {
     notesList.innerHTML = '';
@@ -614,11 +698,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             pomoKind = 'break';
             pomoRemainSec = pomoBreakMin * 60;
             window.api.logPomoSession({ kind: 'work', durationMin: pomoWorkMin, date: Date.now() });
+            pomoState = 'idle';
+            btnPomoToggle.textContent = 'Mulai Istirahat';
           } else {
             pomoKind = 'work';
             pomoRemainSec = pomoWorkMin * 60;
+            pomoState = 'idle';
+            btnPomoToggle.textContent = 'Mulai Fokus';
           }
-          pomoState = 'running';
         }
         updatePomoDisplay();
       }, 1000);

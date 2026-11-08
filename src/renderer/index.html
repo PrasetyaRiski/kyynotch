@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file: https:; connect-src 'self' https: http:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kyynotch — Dynamic Island</title>
   <link rel="stylesheet" href="styles/island.css">
@@ -47,7 +48,8 @@
           <div id="expanded-date" class="expanded-date">Monday, 1 January</div>
         </div>
         <div class="header-right">
-          <button id="btn-close-app" class="icon-btn" title="Keluar / Tutup">✕</button>
+          <button id="btn-collapse" class="icon-btn" title="Kecilkan Notch (Collapse)">▲</button>
+          <button id="btn-close-app" class="icon-btn" title="Tutup / Kecilkan Notch">✕</button>
         </div>
       </div>
 
@@ -280,6 +282,14 @@
               <div class="setting-row">
                 <label>Buka Otomatis saat Login (Auto-start)</label>
                 <input type="checkbox" id="set-autostart" class="checkbox-input">
+              </div>
+            </div>
+
+            <div class="settings-group">
+              <div class="group-title">Keluar dari Aplikasi</div>
+              <div class="setting-row">
+                <label>Tutup Kyynotch sepenuhnya</label>
+                <button id="btn-quit-app" class="sub-btn" style="color: #f87171; border-color: rgba(248, 113, 113, 0.4);">Keluar Aplikasi</button>
               </div>
             </div>
 

@@ -6,12 +6,12 @@ let mainWindow = null;
 
 function createMainWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, y: screenY } = primaryDisplay.bounds;
+  const bounds = primaryDisplay.bounds;
 
   const initialWidth = store.get('collapsedWidth') || 260;
   const initialHeight = store.get('collapsedHeight') || 34;
-  const x = Math.round((screenWidth - initialWidth) / 2);
-  const y = screenY;
+  const x = bounds.x + Math.round((bounds.width - initialWidth) / 2);
+  const y = bounds.y;
 
   mainWindow = new BrowserWindow({
     width: initialWidth,
@@ -23,7 +23,7 @@ function createMainWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
-    resizable: false,
+    resizable: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -59,12 +59,12 @@ function resizeWindow(width, height) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
 
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, y: screenY } = primaryDisplay.bounds;
+  const bounds = primaryDisplay.bounds;
 
   const targetW = Math.round(width);
   const targetH = Math.round(height);
-  const targetX = Math.round((screenWidth - targetW) / 2);
-  const targetY = screenY;
+  const targetX = bounds.x + Math.round((bounds.width - targetW) / 2);
+  const targetY = bounds.y;
 
   mainWindow.setBounds({
     x: targetX,

@@ -212,6 +212,12 @@ body.theme-dracula #island {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .icon-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 0;
