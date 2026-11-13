@@ -78,8 +78,32 @@ function getMainWindow() {
   return mainWindow;
 }
 
+/**
+ * True when the OS cursor is currently inside the window bounds (with a
+ * small grace margin). Electron's DOM `mouseleave` can fire a frame before
+ * the pointer actually exits on some window managers; the original NexNotch
+ * uses the same guard so a stray leave event never collapses the island
+ * while the user is still on it.
+ */
+function isPointerInside(margin = 8) {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  try {
+    const point = screen.getCursorScreenPoint();
+    const b = mainWindow.getBounds();
+    return (
+      point.x >= b.x - margin &&
+      point.x <= b.x + b.width + margin &&
+      point.y >= b.y - margin &&
+      point.y <= b.y + b.height + margin
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
 module.exports = {
   createMainWindow,
   resizeWindow,
   getMainWindow,
+  isPointerInside,
 };

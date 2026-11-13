@@ -57,6 +57,7 @@
       <div class="tabs-nav">
         <button class="tab-btn active" data-tab="system">System</button>
         <button class="tab-btn" data-tab="music">Music</button>
+        <button class="tab-btn" data-tab="shelf">Shelf</button>
         <button class="tab-btn" data-tab="ai">AI</button>
         <button class="tab-btn" data-tab="weather">Weather</button>
         <button class="tab-btn" data-tab="notes">Notes</button>
@@ -134,6 +135,26 @@
           </div>
         </div>
 
+        <!-- DROP SHELF PANEL -->
+        <div id="panel-shelf" class="tab-panel">
+          <div class="shelf-header">
+            <span class="panel-heading">Drop Shelf</span>
+            <div class="shelf-actions">
+              <button id="btn-shelf-add" class="pill-btn">+ Tambah File</button>
+              <button id="btn-shelf-clear" class="sub-btn">Bersihkan</button>
+            </div>
+          </div>
+          <div id="shelf-drop-hint" class="shelf-drop-hint">
+            Tarik file ke notch untuk menyimpannya di sini
+          </div>
+          <div id="shelf-list" class="shelf-list"></div>
+          <div id="shelf-empty" class="empty-state">
+            <div class="empty-icon">🗂️</div>
+            <div class="empty-title">Shelf masih kosong</div>
+            <div class="empty-sub">Seret file ke jendela notch, atau klik “Tambah File”. Kirim file ke tab AI untuk dianalisis.</div>
+          </div>
+        </div>
+
         <!-- UNIVERSAL AI PANEL -->
         <div id="panel-ai" class="tab-panel">
           <div class="ai-header">
@@ -142,16 +163,17 @@
           </div>
           <div id="ai-messages" class="ai-messages">
             <div class="msg assistant">
-              Halo! Saya asisten AI Anda. Anda dapat mengajukan pertanyaan atau melampirkan gambar secara instan.
+              Halo! Saya asisten AI Anda. Anda dapat mengajukan pertanyaan, melampirkan gambar, file teks/kode, atau dokumen Word/ODT.
             </div>
           </div>
           <div id="ai-attachment-preview" class="ai-attachment-preview hidden">
+            <span id="ai-attachment-icon">📄</span>
             <span id="ai-attachment-name">gambar.png</span>
             <button id="btn-remove-attachment" class="close-mini">✕</button>
           </div>
           <div class="ai-input-row">
-            <input type="file" id="ai-file-input" accept="image/*" class="hidden">
-            <button id="btn-ai-attach" class="icon-btn" title="Pilih Gambar">🖼️</button>
+            <input type="file" id="ai-file-input" accept="image/*,text/*,.md,.json,.csv,.log,.docx,.odt" class="hidden">
+            <button id="btn-ai-attach" class="icon-btn" title="Lampirkan File">📎</button>
             <input type="text" id="ai-prompt-input" class="ai-input" placeholder="Tanyakan apa saja kepada AI...">
             <button id="btn-ai-send" class="send-btn">Kirim</button>
           </div>
@@ -159,14 +181,28 @@
 
         <!-- WEATHER PANEL -->
         <div id="panel-weather" class="tab-panel">
-          <div class="weather-box">
-            <div class="weather-current">
-              <div id="weather-temp" class="weather-temp">--°C</div>
-              <div class="weather-details">
-                <div id="weather-loc" class="weather-loc">Lokasi Saat Ini</div>
-                <div id="weather-desc" class="weather-desc">Memuat cuaca...</div>
-                <div class="weather-sub">
-                  Kelembapan: <span id="weather-hum">--</span>% · Angin: <span id="weather-wind">--</span> km/h
+          <div id="weather-cards" class="weather-cards">
+            <div class="weather-box" id="weather-box-1">
+              <div class="weather-current">
+                <div id="weather-temp" class="weather-temp">--°C</div>
+                <div class="weather-details">
+                  <div id="weather-loc" class="weather-loc">Lokasi Saat Ini</div>
+                  <div id="weather-desc" class="weather-desc">Memuat cuaca...</div>
+                  <div class="weather-sub">
+                    Kelembapan: <span id="weather-hum">--</span>% · Angin: <span id="weather-wind">--</span> km/h
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="weather-box hidden" id="weather-box-2">
+              <div class="weather-current">
+                <div id="weather-temp-2" class="weather-temp">--°C</div>
+                <div class="weather-details">
+                  <div id="weather-loc-2" class="weather-loc">Lokasi Kedua</div>
+                  <div id="weather-desc-2" class="weather-desc">Memuat cuaca...</div>
+                  <div class="weather-sub">
+                    Kelembapan: <span id="weather-hum-2">--</span>% · Angin: <span id="weather-wind-2">--</span> km/h
+                  </div>
                 </div>
               </div>
             </div>
@@ -272,8 +308,24 @@
             <div class="settings-group">
               <div class="group-title">Lokasi Cuaca</div>
               <div class="setting-row">
-                <label>Kota / Koordinat</label>
+                <label>Kota Utama / Koordinat</label>
                 <input type="text" id="set-weather-loc" class="text-input" placeholder="Kosongkan untuk otomatis (IP)">
+              </div>
+              <div class="setting-row">
+                <label>Label Kota Utama (opsional)</label>
+                <input type="text" id="set-weather-label" class="text-input" placeholder="cth: Palu">
+              </div>
+              <div class="setting-row">
+                <label>Kota Kedua (opsional)</label>
+                <input type="text" id="set-weather-loc2" class="text-input" placeholder="cth: Jakarta">
+              </div>
+              <div class="setting-row">
+                <label>Label Kota Kedua (opsional)</label>
+                <input type="text" id="set-weather-label2" class="text-input" placeholder="cth: Jakarta">
+              </div>
+              <div class="setting-row">
+                <label>Interval Perbarui (menit)</label>
+                <input type="number" id="set-weather-refresh" class="text-input" min="5" max="180" step="5" value="30">
               </div>
             </div>
 

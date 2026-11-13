@@ -20,6 +20,10 @@ class Store {
       weather: {
         location: '',
         unit: 'metric', // metric or imperial
+        refresh: 30, // minutes
+        locationLabel: '',
+        location2: '',
+        location2Label: '',
       },
       ai: {
         provider: 'gemini', // 'gemini' | 'ollama' | 'openai'

@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isExpanded = false;
   let hoverTimeout = null;
   let collapseTimeout = null;
+  let isDraggingFiles = false;
   let activeTab = config.activeTab || 'system';
 
   let latestMedia = null;
@@ -53,22 +54,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     return minW;
   }
 
+  /* Measure the natural height of the active panel without letting the
+     current window height inflate the result. Panels are `height: 100%`
+     inside a flex viewport, so reading scrollHeight directly would always
+     return at least the current viewport; summing the visible children
+     gives us the real content height instead. */
+  function measurePanelContentHeight(panel) {
+    if (!panel) return 0;
+    const style = getComputedStyle(panel);
+    const gap = parseFloat(style.rowGap) || 0;
+    const children = Array.from(panel.children).filter(el => !el.classList.contains('hidden'));
+    let height = 0;
+    for (const child of children) height += child.offsetHeight;
+    height += gap * Math.max(0, children.length - 1);
+    height += (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+    return height;
+  }
+
+  function contentHeightForActivePanel() {
+    const header = document.querySelector('.expanded-header');
+    const tabsNav = document.querySelector('.tabs-nav');
+    const activePanel = document.querySelector('.tab-panel.active');
+    const styles = getComputedStyle(expandedContainer);
+    const gap = parseFloat(styles.rowGap) || 0;
+
+    return Math.ceil(
+      (parseFloat(styles.paddingTop) || 0) +
+      (header ? header.offsetHeight : 0) + gap +
+      (tabsNav ? tabsNav.offsetHeight : 0) + gap +
+      measurePanelContentHeight(activePanel) +
+      (parseFloat(styles.paddingBottom) || 0)
+    );
+  }
+
+  /* Same idea as the original extension: grow to the content, but never
+     beyond 640px and never below the configured expanded height. */
+  function fitExpandedHeight() {
+    if (!isExpanded) return;
+    const natural = contentHeightForActivePanel();
+    const minHeight = config.expandedHeight || 460;
+    const target = Math.max(minHeight, Math.min(640, natural + 32));
+    const width = config.expandedWidth || 620;
+    window.api.resizeWindow(width, target);
+  }
+
   function expand() {
     if (isExpanded) return;
     clearTimeout(hoverTimeout);
     clearTimeout(collapseTimeout);
     isExpanded = true;
 
-    const w = config.expandedWidth || 620;
-    const h = config.expandedHeight || 460;
-    window.api.resizeWindow(w, h);
-
+    island.classList.remove('hover-pulse');
     island.classList.remove('collapsed');
     island.classList.add('expanded');
     collapsedPill.classList.add('hidden');
     expandedContainer.classList.remove('hidden');
 
+    const w = config.expandedWidth || 620;
+    const h = config.expandedHeight || 460;
+    window.api.resizeWindow(w, h);
+
     switchTab(activeTab);
+
+    // Let the panel paint once, then fit the window to its real height.
+    requestAnimationFrame(() => {
+      fitExpandedHeight();
+      requestAnimationFrame(fitExpandedHeight);
+    });
   }
 
   function collapse() {
@@ -87,6 +139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.api.resizeWindow(w, h);
 
     island.classList.remove('expanded');
+    island.classList.remove('drag-over');
+    island.classList.remove('hover-pulse');
     island.classList.add('collapsed');
     expandedContainer.classList.add('hidden');
     collapsedPill.classList.remove('hidden');
@@ -108,38 +162,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   }
 
+  /* Defer the collapse while the OS cursor is still inside the window, a
+     file drag is in flight, or an input has focus. DOM mouseleave can fire
+     a frame early on some window managers, so the cursor guard prevents the
+     island from vanishing under the pointer. */
+  function scheduleCollapse(delay = 350) {
+    clearTimeout(collapseTimeout);
+    collapseTimeout = setTimeout(async () => {
+      if (!isExpanded) return;
+      if (isDraggingFiles || isAnyInputFocused()) {
+        scheduleCollapse(450);
+        return;
+      }
+      try {
+        const inside = await window.api.isPointerInside(8);
+        if (inside) {
+          scheduleCollapse(400);
+          return;
+        }
+      } catch (_) {}
+      collapse();
+    }, delay);
+  }
+
   // Hover detection with debouncing
   island.addEventListener('mouseenter', () => {
     clearTimeout(collapseTimeout);
     if (!isExpanded) {
+      island.classList.add('hover-pulse');
       hoverTimeout = setTimeout(expand, 180);
     }
   });
 
   island.addEventListener('mouseleave', () => {
     clearTimeout(hoverTimeout);
-    if (isExpanded) {
-      // Don't auto-collapse if user is actively typing in an input
-      if (!isAnyInputFocused()) {
-        collapseTimeout = setTimeout(collapse, 350);
-      }
+    island.classList.remove('hover-pulse');
+    if (isExpanded && !isDraggingFiles && !isAnyInputFocused()) {
+      scheduleCollapse(350);
     }
   });
 
   // Catch cursor leaving document/window boundaries
   document.addEventListener('mouseleave', (e) => {
     clearTimeout(hoverTimeout);
-    if (isExpanded && !e.relatedTarget) {
-      if (!isAnyInputFocused()) {
-        collapseTimeout = setTimeout(collapse, 350);
-      }
+    island.classList.remove('hover-pulse');
+    if (isExpanded && !e.relatedTarget && !isDraggingFiles && !isAnyInputFocused()) {
+      scheduleCollapse(350);
     }
   });
 
   // Clicking outside into another window or desktop collapses the notch
   window.addEventListener('blur', () => {
     clearTimeout(hoverTimeout);
-    if (isExpanded) {
+    island.classList.remove('hover-pulse');
+    if (isExpanded && !isDraggingFiles) {
       collapse();
     }
   });
@@ -199,6 +275,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     tabPanels.forEach(panel => {
       if (panel.id === `panel-${tabName}`) panel.classList.add('active');
       else panel.classList.remove('active');
+    });
+
+    // Every tab has a different natural height; re-fit after it paints.
+    requestAnimationFrame(() => {
+      if (isExpanded) fitExpandedHeight();
     });
   }
 
@@ -322,7 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         lyricCurr.textContent = 'Mencari lirik realtime...';
         lyricNext.textContent = '';
 
-        await window.lyricsEngine.loadLyrics(media.title, media.artist);
+        await window.lyricsEngine.loadLyrics(media.title, media.artist, media.length || media.duration);
         updateLyricsDisplay();
       }
 
@@ -450,11 +531,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const aiFileInput = document.getElementById('ai-file-input');
   const aiAttachmentPreview = document.getElementById('ai-attachment-preview');
   const aiAttachmentName = document.getElementById('ai-attachment-name');
+  const aiAttachmentIcon = document.getElementById('ai-attachment-icon');
   const btnRemoveAttachment = document.getElementById('btn-remove-attachment');
   const btnAiClear = document.getElementById('btn-ai-clear');
   const aiActiveProvider = document.getElementById('ai-active-provider');
 
-  let selectedImage = null; // { base64, mime, name }
+  /* Attachment shapes returned by the main process:
+     image -> { ok, kind: 'image', name, mime, base64 }
+     text  -> { ok, kind: 'text', name, mime, text, size }
+     error -> { ok: false, error } */
+  let selectedAttachment = null;
 
   function updateAiBadge() {
     const prov = config.ai?.provider || 'gemini';
@@ -467,74 +553,144 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   updateAiBadge();
 
-  btnAiAttach.addEventListener('click', () => aiFileInput.click());
+  function setAiAttachment(att) {
+    selectedAttachment = att || null;
 
-  aiFileInput.addEventListener('change', (e) => {
+    if (!att) {
+      aiAttachmentPreview.classList.add('hidden');
+      if (aiAttachmentIcon) aiAttachmentIcon.textContent = '📄';
+      aiAttachmentName.textContent = '';
+      aiAttachmentName.title = '';
+      return;
+    }
+
+    if (aiAttachmentIcon) {
+      aiAttachmentIcon.textContent = att.kind === 'image' ? '🖼️' : '📄';
+    }
+    aiAttachmentName.textContent = att.name;
+    aiAttachmentName.title = att.kind === 'text'
+      ? `${att.name} · ${att.text.length.toLocaleString()} karakter`
+      : att.name;
+    aiAttachmentPreview.classList.remove('hidden');
+  }
+
+  function appendAiError(message) {
+    const msg = document.createElement('div');
+    msg.className = 'msg assistant error';
+    msg.textContent = message;
+    aiMessages.appendChild(msg);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+  }
+
+  async function applyAttachmentResult(att) {
+    if (!att) return;
+    if (!att.ok) {
+      appendAiError(att.error || 'Gagal membaca file.');
+      return;
+    }
+    setAiAttachment(att);
+  }
+
+  btnAiAttach.addEventListener('click', async () => {
+    try {
+      await applyAttachmentResult(await window.api.pickAttachment());
+    } catch (_) {}
+  });
+
+  aiFileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result.split(',')[1];
-      selectedImage = {
-        base64,
-        mime: file.type,
-        name: file.name,
+    const filePath = window.api.getPathForFile(file);
+    e.target.value = '';
+
+    // Files dragged from outside usually have a real path; keep a small
+    // FileReader fallback for environments where that is unavailable.
+    if (!filePath) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAiAttachment({
+          ok: true,
+          kind: 'image',
+          name: file.name,
+          mime: file.type || 'image/png',
+          base64: String(reader.result).split(',')[1],
+        });
       };
-      aiAttachmentName.textContent = file.name;
-      aiAttachmentPreview.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    try {
+      await applyAttachmentResult(await window.api.attachFile(filePath));
+    } catch (_) {}
   });
 
   btnRemoveAttachment.addEventListener('click', () => {
-    selectedImage = null;
+    setAiAttachment(null);
     aiFileInput.value = '';
-    aiAttachmentPreview.classList.add('hidden');
   });
 
   btnAiClear.addEventListener('click', () => {
     aiMessages.innerHTML = `
       <div class="msg assistant">
-        Obrolan telah dibersihkan. Silakan tanyakan hal lain atau lampirkan gambar!
+        Obrolan telah dibersihkan. Silakan tanyakan hal lain atau lampirkan gambar, file teks, atau dokumen.
       </div>
     `;
-    selectedImage = null;
-    aiAttachmentPreview.classList.add('hidden');
+    setAiAttachment(null);
   });
 
   async function sendAiMessage() {
     const text = (aiPromptInput.value || '').trim();
-    if (!text && !selectedImage) return;
+    const att = selectedAttachment;
+    if (!text && !att) return;
 
-    const img = selectedImage;
-    selectedImage = null;
+    setAiAttachment(null);
     aiFileInput.value = '';
-    aiAttachmentPreview.classList.add('hidden');
     aiPromptInput.value = '';
+
+    let outbound = text;
+    let fallbackAsk = 'Tolong jelaskan isi file ini.';
+
+    if (att?.kind === 'image') {
+      fallbackAsk = 'Tolong jelaskan isi gambar ini.';
+    } else if (att?.kind === 'text') {
+      const ask = text || 'Tolong ringkas dan jelaskan isi file ini, lalu sebutkan poin-poin pentingnya.';
+      outbound = `${ask}\n\n===== ISI FILE: ${att.name} =====\n${att.text}\n===== AKHIR FILE =====`;
+      fallbackAsk = 'Tolong ringkas isi file ini.';
+    }
 
     // Append user message
     const userMsg = document.createElement('div');
     userMsg.className = 'msg user';
-    if (img) {
-      userMsg.innerHTML = `<div class="msg-attachment">🖼️ ${img.name}</div>${text || 'Jelaskan gambar ini.'}`;
-    } else {
-      userMsg.textContent = text;
+    if (att) {
+      const tag = document.createElement('div');
+      tag.className = 'msg-attachment';
+      tag.textContent = `${att.kind === 'image' ? '🖼️' : '📄'} ${att.name}`;
+      userMsg.appendChild(tag);
     }
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.textContent = text || fallbackAsk;
+    userMsg.appendChild(body);
     aiMessages.appendChild(userMsg);
 
     // Append loading placeholder
     const loadingMsg = document.createElement('div');
     loadingMsg.className = 'msg assistant';
-    loadingMsg.textContent = 'Sedang berpikir...';
+    loadingMsg.textContent = att?.kind === 'image'
+      ? 'Menganalisis gambar...'
+      : att?.kind === 'text'
+        ? `Membaca “${att.name}”...`
+        : 'Sedang berpikir...';
     aiMessages.appendChild(loadingMsg);
     aiMessages.scrollTop = aiMessages.scrollHeight;
 
     try {
       const answer = await window.api.askAI({
-        prompt: text,
-        imageBase64: img?.base64,
-        imageMime: img?.mime,
+        prompt: outbound || fallbackAsk,
+        imageBase64: att?.kind === 'image' ? att.base64 : undefined,
+        imageMime: att?.kind === 'image' ? att.mime : undefined,
       });
       loadingMsg.textContent = answer;
     } catch (err) {
@@ -549,7 +705,207 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ==========================================
-  // 6. WEATHER FORECAST
+  // 6. DROP SHELF
+  // ==========================================
+  const shelfList = document.getElementById('shelf-list');
+  const shelfEmpty = document.getElementById('shelf-empty');
+  const shelfDropHint = document.getElementById('shelf-drop-hint');
+  const btnShelfAdd = document.getElementById('btn-shelf-add');
+  const btnShelfClear = document.getElementById('btn-shelf-clear');
+
+  let shelfItems = [];
+
+  function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let idx = 0;
+    while (value >= 1024 && idx < units.length - 1) {
+      value /= 1024;
+      idx++;
+    }
+    return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+  }
+
+  function shelfIcon(item) {
+    if (item.isImage) return '🖼️';
+    const ext = (item.ext || '').replace('.', '').toLowerCase();
+    if (['doc', 'docx', 'odt', 'pdf', 'txt', 'md', 'rtf'].includes(ext)) return '📄';
+    if (['zip', 'tar', 'gz', '7z', 'rar', 'xz'].includes(ext)) return '🗜️';
+    if (['mp3', 'wav', 'flac', 'ogg', 'm4a', 'opus'].includes(ext)) return '🎵';
+    if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(ext)) return '🎬';
+    return '📎';
+  }
+
+  function renderShelf() {
+    shelfList.innerHTML = '';
+    const hasItems = shelfItems.length > 0;
+    shelfEmpty.classList.toggle('hidden', hasItems);
+    shelfList.classList.toggle('hidden', !hasItems);
+
+    for (const item of shelfItems) {
+      const row = document.createElement('div');
+      row.className = 'shelf-item';
+
+      const icon = document.createElement('span');
+      icon.className = 'shelf-item-icon';
+      icon.textContent = shelfIcon(item);
+
+      const meta = document.createElement('div');
+      meta.className = 'shelf-item-meta';
+
+      const name = document.createElement('div');
+      name.className = 'shelf-item-name';
+      name.textContent = item.name;
+      name.title = item.path;
+
+      const sub = document.createElement('div');
+      sub.className = 'shelf-item-sub';
+      sub.textContent = `${formatBytes(item.size)} · ${new Date(item.mtime).toLocaleDateString()}`;
+
+      meta.append(name, sub);
+
+      const actions = document.createElement('div');
+      actions.className = 'shelf-item-actions';
+
+      const aiBtn = document.createElement('button');
+      aiBtn.className = 'shelf-action';
+      aiBtn.title = 'Kirim ke AI';
+      aiBtn.textContent = '🤖';
+      aiBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sendShelfItemToAi(item);
+      });
+
+      const revealBtn = document.createElement('button');
+      revealBtn.className = 'shelf-action';
+      revealBtn.title = 'Tampilkan di Folder';
+      revealBtn.textContent = '📂';
+      revealBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.api.shelfReveal(item.path);
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'shelf-action danger';
+      delBtn.title = 'Hapus dari shelf';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await window.api.shelfRemove(item.path);
+        await loadShelf();
+      });
+
+      actions.append(aiBtn, revealBtn, delBtn);
+      row.append(icon, meta, actions);
+      shelfList.appendChild(row);
+    }
+  }
+
+  async function loadShelf() {
+    try {
+      shelfItems = (await window.api.shelfList()) || [];
+    } catch (_) {
+      shelfItems = [];
+    }
+    renderShelf();
+  }
+
+  async function sendShelfItemToAi(item) {
+    try {
+      const att = await window.api.attachFile(item.path);
+      if (!isExpanded) expand();
+      switchTab('ai');
+      await applyAttachmentResult(att);
+    } catch (_) {}
+  }
+
+  async function addPathsToShelf(paths) {
+    if (!paths || !paths.length) return;
+    try {
+      await window.api.shelfAdd(paths);
+      await loadShelf();
+      if (!isExpanded) expand();
+      switchTab('shelf');
+    } catch (_) {}
+  }
+
+  btnShelfAdd.addEventListener('click', async () => {
+    try {
+      const added = await window.api.shelfPick();
+      if (Array.isArray(added) && added.length) {
+        await loadShelf();
+        switchTab('shelf');
+      }
+    } catch (_) {}
+  });
+
+  btnShelfClear.addEventListener('click', async () => {
+    if (!shelfItems.length) return;
+    await window.api.shelfClear();
+    await loadShelf();
+  });
+
+  loadShelf();
+
+  // ——— Drag & drop onto the island ———
+  let dragDepth = 0;
+
+  function isFileDrag(event) {
+    const types = event.dataTransfer?.types;
+    return types ? Array.from(types).includes('Files') : false;
+  }
+
+  function setDragState(on) {
+    isDraggingFiles = on;
+    island.classList.toggle('drag-over', on);
+    if (shelfDropHint) shelfDropHint.classList.toggle('active', on);
+  }
+
+  function clearDragState() {
+    dragDepth = 0;
+    setDragState(false);
+  }
+
+  island.addEventListener('dragenter', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    setDragState(true);
+    if (!isExpanded) expand();
+  });
+
+  island.addEventListener('dragover', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  island.addEventListener('dragleave', (e) => {
+    if (!isFileDrag(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) setDragState(false);
+  });
+
+  island.addEventListener('drop', async (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer?.files || []);
+    clearDragState();
+
+    const paths = files
+      .map(file => {
+        try { return window.api.getPathForFile(file); } catch (_) { return ''; }
+      })
+      .filter(Boolean);
+
+    await addPathsToShelf(paths);
+  });
+
+  window.addEventListener('dragend', clearDragState);
+
+  // ==========================================
+  // 7. WEATHER FORECAST
   // ==========================================
   const weatherTemp = document.getElementById('weather-temp');
   const weatherLoc = document.getElementById('weather-loc');
@@ -557,29 +913,83 @@ document.addEventListener('DOMContentLoaded', async () => {
   const weatherHum = document.getElementById('weather-hum');
   const weatherWind = document.getElementById('weather-wind');
 
-  async function pollWeather() {
-    try {
-      const data = await window.api.fetchWeather({
-        location: config.weather?.location || '',
-        unit: config.weather?.unit || 'metric',
-      });
-      if (data && data.current_condition && data.current_condition[0]) {
-        const c = data.current_condition[0];
-        const temp = config.weather?.unit === 'imperial' ? c.temp_F + '°F' : c.temp_C + '°C';
-        const area = data.nearest_area?.[0]?.areaName?.[0]?.value || config.weather?.location || 'Lokasi Terdeteksi';
+  const weatherBox2 = document.getElementById('weather-box-2');
+  const weatherTemp2 = document.getElementById('weather-temp-2');
+  const weatherLoc2 = document.getElementById('weather-loc-2');
+  const weatherDesc2 = document.getElementById('weather-desc-2');
+  const weatherHum2 = document.getElementById('weather-hum-2');
+  const weatherWind2 = document.getElementById('weather-wind-2');
 
-        weatherTemp.textContent = temp;
-        weatherLoc.textContent = area;
-        weatherDesc.textContent = c.weatherDesc?.[0]?.value || 'Cerah';
-        weatherHum.textContent = c.humidity;
-        weatherWind.textContent = c.windspeedKmph;
-      }
+  function detectedArea(data, fallback) {
+    return (
+      data?.nearest_area?.[0]?.areaName?.[0]?.value ||
+      fallback ||
+      'Lokasi Terdeteksi'
+    );
+  }
+
+  async function fetchWeatherInto(location, refs, label) {
+    const unit = config.weather?.unit || 'metric';
+    const data = await window.api.fetchWeather({ location, unit });
+    const c = data?.current_condition?.[0];
+    if (!c) return false;
+
+    refs.temp.textContent = unit === 'imperial' ? `${c.temp_F}°F` : `${c.temp_C}°C`;
+    refs.loc.textContent = label || detectedArea(data, location);
+    refs.desc.textContent = c.weatherDesc?.[0]?.value || 'Cerah';
+    refs.hum.textContent = c.humidity ?? '--';
+    refs.wind.textContent = c.windspeedKmph ?? '--';
+    return true;
+  }
+
+  async function pollWeather() {
+    const unit = config.weather?.unit || 'metric';
+    const primary = {
+      location: config.weather?.location || '',
+      label: config.weather?.locationLabel || '',
+    };
+
+    try {
+      await fetchWeatherInto(
+        primary.location,
+        { temp: weatherTemp, loc: weatherLoc, desc: weatherDesc, hum: weatherHum, wind: weatherWind },
+        primary.label
+      );
     } catch (_) {
       weatherDesc.textContent = 'Cuaca tidak dapat diakses';
     }
+
+    const secondary = {
+      location: (config.weather?.location2 || '').trim(),
+      label: config.weather?.location2Label || '',
+    };
+
+    if (!secondary.location) {
+      weatherBox2.classList.add('hidden');
+      return;
+    }
+
+    weatherBox2.classList.remove('hidden');
+    try {
+      await fetchWeatherInto(
+        secondary.location,
+        { temp: weatherTemp2, loc: weatherLoc2, desc: weatherDesc2, hum: weatherHum2, wind: weatherWind2 },
+        secondary.label
+      );
+    } catch (_) {
+      weatherDesc2.textContent = 'Cuaca tidak dapat diakses';
+    }
   }
 
-  setInterval(pollWeather, 30 * 60 * 1000);
+  let weatherTimer = null;
+
+  function startWeatherLoop() {
+    if (weatherTimer) clearInterval(weatherTimer);
+    const minutes = Math.max(5, parseInt(config.weather?.refresh, 10) || 30);
+    weatherTimer = setInterval(pollWeather, minutes * 60 * 1000);
+  }
+
+  startWeatherLoop();
   pollWeather();
 
   // ==========================================
@@ -751,6 +1161,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setOpenaiKey = document.getElementById('set-openai-key');
   const setOpenaiModel = document.getElementById('set-openai-model');
   const setWeatherLoc = document.getElementById('set-weather-loc');
+  const setWeatherLabel = document.getElementById('set-weather-label');
+  const setWeatherLoc2 = document.getElementById('set-weather-loc2');
+  const setWeatherLabel2 = document.getElementById('set-weather-label2');
+  const setWeatherRefresh = document.getElementById('set-weather-refresh');
   const setAutostart = document.getElementById('set-autostart');
   const btnSaveSettings = document.getElementById('btn-save-settings');
 
@@ -765,6 +1179,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   setOpenaiKey.value = config.ai?.openaiApiKey || '';
   setOpenaiModel.value = config.ai?.openaiModel || 'gpt-4o-mini';
   setWeatherLoc.value = config.weather?.location || '';
+  setWeatherLabel.value = config.weather?.locationLabel || '';
+  setWeatherLoc2.value = config.weather?.location2 || '';
+  setWeatherLabel2.value = config.weather?.location2Label || '';
+  setWeatherRefresh.value = config.weather?.refresh || 30;
 
   try {
     const isAuto = await window.api.getAutostart();
@@ -788,8 +1206,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnSaveSettings.addEventListener('click', async () => {
     config.theme = setTheme.value;
     config.weather = {
-      location: setWeatherLoc.value,
+      location: setWeatherLoc.value.trim(),
       unit: config.weather?.unit || 'metric',
+      refresh: Math.max(5, parseInt(setWeatherRefresh.value, 10) || 30),
+      locationLabel: setWeatherLabel.value.trim(),
+      location2: setWeatherLoc2.value.trim(),
+      location2Label: setWeatherLabel2.value.trim(),
     };
     config.ai = {
       provider: setAiProvider.value,
@@ -807,6 +1229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try { await window.api.setAutostart(setAutostart.checked); } catch (_) {}
     }
     updateAiBadge();
+    startWeatherLoop();
     pollWeather();
 
     btnSaveSettings.textContent = '✓ Tersimpan!';

@@ -1,13 +1,29 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   // Window control
   resizeWindow: (width, height) => ipcRenderer.send('window-resize', { width, height }),
   hideWindow: () => ipcRenderer.send('window-hide'),
   closeWindow: () => ipcRenderer.send('window-close'),
+  isPointerInside: (margin) => ipcRenderer.invoke('window-pointer-inside', margin),
+  getPathForFile: (file) => {
+    try { return webUtils.getPathForFile(file); } catch (_) { return ''; }
+  },
   onToggleNotch: (callback) => {
     ipcRenderer.on('toggle-notch', () => callback());
   },
+
+  // Drop Shelf
+  shelfList: () => ipcRenderer.invoke('shelf-list'),
+  shelfAdd: (paths) => ipcRenderer.invoke('shelf-add', paths),
+  shelfRemove: (filePath) => ipcRenderer.invoke('shelf-remove', filePath),
+  shelfClear: () => ipcRenderer.invoke('shelf-clear'),
+  shelfReveal: (filePath) => ipcRenderer.invoke('shelf-reveal', filePath),
+  shelfPick: () => ipcRenderer.invoke('shelf-pick'),
+
+  // AI attachments
+  attachFile: (filePath) => ipcRenderer.invoke('ai-attach-file', filePath),
+  pickAttachment: () => ipcRenderer.invoke('ai-pick-file'),
 
   // Store & Settings
   getStore: (key) => ipcRenderer.invoke('store-get', key),

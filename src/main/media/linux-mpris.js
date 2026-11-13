@@ -72,6 +72,8 @@ class LinuxMpris {
         const artUrl = await this._exec(`playerctl -p "${playerBus}" metadata mpris:artUrl 2>/dev/null`);
         const posStr = await this._exec(`playerctl -p "${playerBus}" position 2>/dev/null`);
         const pos = parseFloat(posStr) || 0;
+        const lenStr = await this._exec(`playerctl -p "${playerBus}" metadata mpris:length 2>/dev/null`);
+        const length = parseFloat(lenStr) ? parseFloat(lenStr) / 1000000 : 0;
 
         this.latestState = {
           playing: status === 'Playing',
@@ -81,6 +83,7 @@ class LinuxMpris {
           album: album || '',
           artUrl: artUrl || '',
           position: pos,
+          length,
           bus: playerBus,
           canNext: true,
           canPrev: true,
@@ -115,6 +118,9 @@ class LinuxMpris {
       const posMatch = gdbusOut.match(/'Position': <int64 ([0-9]+)>/);
       const pos = posMatch ? parseInt(posMatch[1], 10) / 1000000 : 0;
 
+      const lenMatch = gdbusOut.match(/'mpris:length': <int64 ([0-9]+)>/);
+      const length = lenMatch ? parseInt(lenMatch[1], 10) / 1000000 : 0;
+
       this.latestState = {
         playing: status === 'Playing',
         paused: status === 'Paused',
@@ -123,6 +129,7 @@ class LinuxMpris {
         album,
         artUrl,
         position: pos,
+        length,
         bus: playerBus,
         canNext: true,
         canPrev: true,

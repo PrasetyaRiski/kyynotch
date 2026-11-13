@@ -1,10 +1,12 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, dialog } = require('electron');
 const path = require('path');
-const { createMainWindow, resizeWindow, getMainWindow } = require('./window');
+const { createMainWindow, resizeWindow, getMainWindow, isPointerInside } = require('./window');
 const store = require('./store');
 const mediaManager = require('./media');
 const systemMonitor = require('./system/monitor');
 const aiManager = require('./ai');
+const shelf = require('./shelf');
+const { loadAttachment } = require('./ai/attachments');
 
 let tray = null;
 
@@ -120,6 +122,35 @@ function setupIpc() {
 
   ipcMain.on('window-close', () => {
     app.quit();
+  });
+
+  // True while the OS cursor is still within the window (collapse guard)
+  ipcMain.handle('window-pointer-inside', (_event, margin) => {
+    return isPointerInside(typeof margin === 'number' ? margin : 8);
+  });
+
+  // Drop Shelf
+  ipcMain.handle('shelf-list', () => shelf.list());
+  ipcMain.handle('shelf-add', (_event, paths) => shelf.addFiles(paths));
+  ipcMain.handle('shelf-remove', (_event, filePath) => shelf.remove(filePath));
+  ipcMain.handle('shelf-clear', () => { shelf.clear(); return true; });
+  ipcMain.handle('shelf-reveal', (_event, filePath) => shelf.reveal(filePath));
+  ipcMain.handle('shelf-pick', async () => await shelf.pickFiles());
+
+  // AI file attachment (text/code/docx/odt/images)
+  ipcMain.handle('ai-attach-file', (_event, filePath) => loadAttachment(filePath));
+  ipcMain.handle('ai-pick-file', async () => {
+    const win = getMainWindow();
+    const result = await dialog.showOpenDialog(win || undefined, {
+      title: 'Pilih File untuk Analisis AI',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Didukung (gambar, teks, docx, odt)', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'txt', 'md', 'json', 'csv', 'log', 'docx', 'odt'] },
+        { name: 'Semua File', extensions: ['*'] },
+      ],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return loadAttachment(result.filePaths[0]);
   });
 
   // Autostart on boot

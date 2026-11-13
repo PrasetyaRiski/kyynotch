@@ -570,3 +570,152 @@
 .save-settings-btn:hover {
   background: #0369a1;
 }
+
+/* ——— DROP SHELF PANEL ——— */
+#panel-shelf {
+  gap: 8px;
+}
+
+.shelf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.shelf-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shelf-drop-hint {
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  transition: all 0.18s ease;
+}
+
+.shelf-drop-hint.active {
+  border-color: rgba(56, 189, 248, 0.8);
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+}
+
+.shelf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 280px;
+  padding-right: 4px;
+}
+
+.shelf-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 10px;
+  transition: background 0.15s ease;
+}
+
+.shelf-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.shelf-item-icon {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.shelf-item-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shelf-item-name {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelf-item-sub {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.shelf-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.shelf-action {
+  background: rgba(255, 255, 255, 0.07);
+  border: 0;
+  color: rgba(255, 255, 255, 0.8);
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shelf-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.shelf-action.danger:hover {
+  background: rgba(248, 113, 113, 0.28);
+  color: #fca5a5;
+}
+
+/* ——— DUAL WEATHER CARDS ——— */
+.weather-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weather-box + .weather-box {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ——— AI MESSAGE EXTRAS ——— */
+.msg-body {
+  white-space: pre-wrap;
+}
+
+.msg.assistant.error {
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
+}
+
+.ai-attachment-preview .attachment-icon {
+  font-size: 13px;
+}
+
+.ai-attachment-preview #ai-attachment-name {
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
